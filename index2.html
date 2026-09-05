@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academia de Piano Jazz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/tone@14.7.58/build/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f8f8; /* Fondo claro */
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background-color: #1a202c; /* Color oscuro para el encabezado */
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        nav ul li {
+            display: inline-block;
+            margin: 0 1rem;
+        }
+        nav a {
+            color: #cbd5e0; /* Gris claro para los enlaces */
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        nav a:hover {
+            color: #fff;
+        }
+        main {
+            padding: 2rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #hero {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(to right, #63b3ed, #4299e1); /* Degradado azul */
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        #hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        #hero p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #f6e05e; /* Amarillo */
+            color: #2d3748; /* Gris oscuro */
+            padding: 0.75rem 2rem;
+            text-decoration: none;
+            border-radius: 9999px; /* Botón redondeado */
+            font-weight: 700;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #ecc94b; /* Amarillo más oscuro al pasar el ratón */
+        }
+
+        /* Estilos del Piano Virtual */
+        #virtual-piano-container {
+            margin-top: 2rem;
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Permite desplazamiento horizontal si el piano es demasiado ancho */
+            position: relative; /* Necesario para el posicionamiento absoluto de las teclas negras */
+        }
+
+        #virtual-piano {
+            display: flex;
+            position: relative;
+            height: 150px; /* Altura del piano */
+            min-width: 700px; /* Ancho mínimo para mostrar suficientes teclas */
+        }
+
+        .key {
+            position: absolute;
+            /* bottom se ajustará para cada tipo de tecla */
+            border: 1px solid #333;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: background-color 0.1s ease, transform 0.05s ease;
+            user-select: none; /* Evita la selección de texto al hacer clic rápido */
+            border-radius: 0 0 4px 4px; /* Esquinas inferiores redondeadas */
+        }
+
+        .white {
+            width: 50px; /* Ancho de tecla blanca */
+            height: 150px;
+            background-color: #fff;
+            z-index: 1; /* Asegura que las teclas blancas estén detrás de las negras */
+            bottom: 0; /* Las teclas blancas van abajo */
+        }
+
+        .black {
+            width: 30px; /* Ancho de tecla negra */
+            height: 100px;
+            background-color: #1a202c; /* Color oscuro para teclas negras */
+            z-index: 2; /* Asegura que las teclas negras estén encima de las blancas */
+            bottom: 50px; /* Eleva las teclas negras por encima de las blancas (150 - 100 = 50) */
+        }
+
+        .key:active {
+            transform: scale(0.98); /* Efecto de pulsación */
+        }
+
+        .white.highlighted {
+            background-color: #90cdf4; /* Azul claro para resaltar teclas blancas */
+        }
+
+        .black.highlighted {
+            background-color: #4c78a8; /* Azul más oscuro para resaltar teclas negras */
+        }
+
+        .key-label {
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            pointer-events: none; /* Permite hacer clic en la tecla a través de la etiqueta */
+            color: #333; /* Color para las etiquetas de teclas blancas */
+        }
+
+         .black .key-label {
+             color: #fff; /* Color para las etiquetas de teclas negras */
+         }
+
+
+        /* Controles */
+        #controls {
+            margin-top: 1.5rem;
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+            gap: 1rem; /* Espacio entre elementos */
+            align-items: center;
+        }
+
+        #controls label {
+            font-weight: 600;
+        }
+
+        #controls select,
+        #controls button {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        #controls button {
+            background-color: #4299e1; /* Azul */
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #controls button:hover {
+            background-color: #3182ce; /* Azul más oscuro */
+        }
+
+        /* Estilos para las secciones de contenido con fondo suave */
+        .content-section {
+            margin-top: 2rem;
+            background-color: #fff; /* Fondo blanco por defecto */
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-section-bg {
+             background-color: #f0f0f0; /* Gris muy claro para el fondo suave */
+        }
+
+
+        .content-section h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .chord-info {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chord-info h4 {
+            font-size: 1.4rem;
+            margin-bottom: 0.8rem;
+            color: #4299e1; /* Azul */
+        }
+
+        .chord-info p {
+            margin-bottom: 0.5rem;
+        }
+
+        .fingering {
+            font-style: italic;
+            color: #555;
+        }
+
+        .chord-image {
+            display: block; /* Asegura que la imagen esté en su propia línea */
+            max-width: 100%; /* La imagen no excederá el ancho del contenedor */
+            height: auto; /* Mantiene la relación de aspecto */
+            margin-top: 1rem; /* Espacio encima de la imagen */
+            border-radius: 4px; /* Bordes redondeados para la imagen */
+        }
+
+        /* Estilos para las imágenes dentro de la explicación gráfica de voice leading */
+        .voice-leading-step img {
+            max-width: 300px; /* Limita el ancho de las imágenes en los pasos */
+            margin: 1rem auto; /* Centra la imagen y añade espacio */
+            display: block; /* Asegura que margin: auto funcione */
+        }
+
+
+        footer {
+            text-align: center;
+            padding: 1.5rem 0;
+            background-color: #1a202c;
+            color: #cbd5e0;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Academia de Piano Jazz</h1>
+        <nav>
+            <ul>
+                <li><a href="#acordes">Acordes de Jazz</a></li>
+                <li><a href="#dominantes">Dominantes Secundarios y Sustitutos</a></li>
+                <li><a href="#voiceleading">Voice Leading</a></li>
+                <li><a href="#construccion">Construcción de Acordes</a></li>
+                <li><a href="#escalas">Escalas</a></li>
+                <li><a href="#arpegios">Arpegios</a></li>
+                <li><a href="#modos">Modos</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero">
+            <h2>Desbloquea el Mundo del Piano Jazz</h2>
+            <p>Aprende los fundamentos y técnicas para tocar jazz en el piano.</p>
+            <a href="#acordes" class="cta-button">Comienza a Aprender Acordes</a>
+        </section>
+
+        <section id="virtual-piano-container">
+            <h2>Piano Virtual Interactivo</h2>
+            <div id="virtual-piano">
+                </div>
+        </section>
+
+        <section id="controls">
+            <label for="music-type">Selecciona:</label>
+            <select id="music-type">
+                <option value="chord">Acorde</option>
+                <option value="scale">Escala</option>
+                <option value="arpeggio">Arpegio</option>
+            </select>
+
+            <label for="root-note">Tónica:</label>
+            <select id="root-note">
+                </select>
+
+            <label for="variation-type">Tipo:</label>
+            <select id="variation-type">
+                 </select>
+
+            <button id="play-button">Tocar</button>
+        </section>
+
+        <section id="acordes" class="content-section content-section-bg">
+            <h3>Acordes de Jazz para Piano</h3>
+            <p>Los acordes son la base de la armonía en el jazz. Aquí exploraremos algunos de los acordes más comunes y cómo tocarlos en el piano.</p>
+
+            <div class="chord-info">
+                <h4>Acorde Mayor Séptima (Maj7) - Cifrado: Maj7 o &Delta;7</h4>
+                <p>Estructura: Tónica, 3ª Mayor, 5ª Justa, 7ª Mayor (1 - 3 - 5 - 7)</p>
+                <p>Sonido: Brillante y estable, común en el acorde I y IV de una tonalidad mayor.</p>
+                <p>Voicing básico (fundamental en la mano izquierda):</p>
+                <p>Mano Izquierda: Tónica</p>
+                <p>Mano Derecha: 3ª, 5ª, 7ª</p>
+                <p class="fingering">Digitación sugerida (Mano Derecha): 1 - 2 - 3 - 5</p>
+                 <p class="fingering">Digitación sugerida (Mano Izquierda - solo tónica): 5</p>
+                 <img src="images/C-major-seventh.png" alt="Acorde C Mayor Séptima en teclado de piano" class="chord-image">
+            </div>
+
+            <div class="chord-info">
+                <h4>Acorde Menor Séptima (min7) - Cifrado: min7 o -7</h4>
+                <p>Estructura: Tónica, 3ª Menor, 5ª Justa, 7ª Menor (1 - &flat;3 - 5 - &flat;7)</p>
+                <p>Sonido: Melancólico o suave, muy común como acorde ii en una tonalidad mayor o acorde i en una tonalidad menor.</p>
+                 <p>Voicing básico (fundamental en la mano izquierda):</p>
+                <p>Mano Izquierda: Tónica</p>
+                <p>Mano Derecha: 3ª Menor, 5ª Justa, 7ª Menor</p>
+                <p class="fingering">Digitación sugerida (Mano Derecha): 1 - 2 - 3 - 5</p>
+                 <p class="fingering">Digitación sugerida (Mano Izquierda - solo tónica): 5</p>
+                  <img src="images/C-minor-seventh.png" alt="Acorde C Menor Séptima en teclado de piano" class="chord-image">
+            </div>
+
+            <div class="chord-info">
+                <h4>Acorde Dominante Séptima (Dom7) - Cifrado: 7</h4>
+                <p>Estructura: Tónica, 3ª Mayor, 5ª Justa, 7ª Menor (1 - 3 - 5 - &flat;7)</p>
+                <p>Sonido: Tenso, crea una fuerte necesidad de resolver a la tónica. Es el acorde V en una tonalidad mayor o menor.</p>
+                 <p>Voicing básico (fundamental en la mano izquierda):</p>
+                <p>Mano Izquierda: Tónica</p>
+                <p>Mano Derecha: 3ª Mayor, 5ª Justa, 7ª Menor</p>
+                <p class="fingering">Digitación sugerida (Mano Derecha): 1 - 2 - 3 - 5</p>
+                 <p class="fingering">Digitación sugerida (Mano Izquierda - solo tónica): 5</p>
+                  <img src="images/C-dominant-seventh.png" alt="Acorde C Dominante Séptima en teclado de piano" class="chord-image">
+            </div>
+
+             <div class="chord-info">
+                <h4>Acorde Menor Séptima con Quinta Bemol (min7&flat;5) - Cifrado: min7&flat;5 o &oslash;7</h4>
+                <p>Estructura: Tónica, 3ª Menor, 5ª Disminuida, 7ª Menor (1 - &flat;3 - &flat;5 - &flat;7)</p>
+                <p>Sonido: Inestable y oscuro, a menudo encontrado como el acorde ii en una tonalidad menor armónica o melódica, o como el acorde vii en una tonalidad mayor.</p>
+                 <p>Voicing básico (fundamental en la mano izquierda):</p>
+                <p>Mano Izquierda: Tónica</p>
+                <p>Mano Derecha: 3ª Menor, 5ª Disminuida, 7ª Menor</p>
+                <p class="fingering">Digitación sugerida (Mano Derecha): 1 - 2 - 3 - 5</p>
+                 <p class="fingering">Digitación sugerida (Mano Izquierda - solo tónica): 5</p>
+                  <img src="images/c-half-diminished-7th-chord-cm7b5-piano.png" alt="Acorde C Menor Séptima con Quinta Bemol en teclado de piano" class="chord-image">
+            </div>
+
+             <div class="chord-info">
+                <h4>Acorde Disminuido Séptima (dim7) - Cifrado: dim7 o &deg;7</h4>
+                <p>Estructura: Tónica, 3ª Menor, 5ª Disminuida, 7ª Disminuida (1 - &flat;3 - &flat;5 - &flat;&flat;7)</p>
+                <p>Sonido: Muy tenso y simétrico, con múltiples posibilidades de resolución. A menudo se usa como un acorde de paso o sustitución.</p>
+                 <p>Voicing básico (fundamental en la mano izquierda):</p>
+                <p>Mano Izquierda: Tónica</p>
+                <p>Mano Derecha: 3ª Menor, 5ª Disminuida, 7ª Disminuida</p>
+                <p class="fingering">Digitación sugerida (Mano Derecha): 1 - 2 - 3 - 5</p>
+                 <p class="fingering">Digitación sugerida (Mano Izquierda - solo tónica): 5</p>
+                  <img src="images/C-dim7.png" alt="Acorde C Disminuido Séptima en teclado de piano" class="chord-image">
+            </div>
+
+            </section>
+
+        <section id="dominantes" class="content-section content-section-bg">
+            <h3>Dominantes Secundarios y Acordes Sustitutos</h3>
+            <p>Más allá de la dominante principal (V7), el jazz utiliza dominantes secundarias y sustitutos para crear interés armónico y movimiento.</p>
+
+            <div class="chord-info">
+                <h4>Dominantes Secundarios</h4>
+                <p>Un dominante secundario es un acorde dominante (V7) que resuelve a un acorde que no es la tónica de la pieza. Funcionan creando una tensión temporal que "apunta" hacia el acorde al que preceden, como si ese acorde fuera momentáneamente la tónica.</p>
+                <p>Se cifran como "V7 de [el acorde al que resuelve]". Por ejemplo, V7/ii significa "el dominante del segundo grado".</p>
+
+                <h5>Ejemplos en Do Mayor:</h5>
+
+                <h6>V7/ii (Dominante del ii menor) - A7</h6>
+                <p>Resuelve a Dm7. En Do Mayor, el ii es Dm7. El dominante de Dm es A7 (el V7 de Re menor). La progresión común es A7 &rarr; Dm7.</p>
+                <p class="fingering">Digitación sugerida para A7 (fundamental en MI, 3-5-&flat;7 en MD): MI: 5 (La), MD: 1 (Do#), 2 (Mi), 3 (Sol)</p>
+                <img src="images/A-dominant-seventh.png" alt="Acorde A Dominante Séptima en teclado de piano" class="chord-image">
+
+                <h6>V7/iii (Dominante del iii menor) - B7</h6>
+                <p>Resuelve a Em7. En Do Mayor, el iii es Em7. El dominante de Em es B7 (el V7 de Mi menor). La progresión común es B7 &rarr; Em7.</p>
+                 <p class="fingering">Digitación sugerida para B7 (fundamental en MI, 3-5-&flat;7 en MD): MI: 5 (Si), MD: 1 (Re#), 2 (Fa#), 3 (La)</p>
+                 <img src="images/B-dominant-seventh.png" alt="Acorde B Dominante Séptima en teclado de piano" class="chord-image">
+
+
+                <h6>V7/IV (Dominante del IV mayor) - C7</h6>
+                <p>Resuelve a Fmaj7. En Do Mayor, el IV es Fmaj7. El dominante de F es C7 (el V7 de Fa mayor). La progresión común es C7 &rarr; Fmaj7.</p>
+                 <p class="fingering">Digitación sugerida para C7 (fundamental en MI, 3-5-&flat;7 en MD): MI: 5 (Do), MD: 1 (Mi), 2 (Sol), 3 (Si&flat;)</p>
+                 <img src="images/C-dominant-seventh.png" alt="Acorde C Dominante Séptima en teclado de piano" class="chord-image">
+
+                <h6>V7/V (Dominante del V dominante) - D7</h6>
+                <p>Resuelve a G7. En Do Mayor, el V es G7. El dominante de G es D7 (el V7 de Sol mayor). La progresión común es D7 &rarr; G7.</p>
+                 <p class="fingering">Digitación sugerida para D7 (fundamental en MI, 3-5-&flat;7 en MD): MI: 5 (Re), MD: 1 (Fa#), 2 (La), 3 (Do)</p>
+                 <img src="images/D-dominant-seventh.png" alt="Acorde D Dominante Séptima en teclado de piano" class="chord-image">
+
+                <h6>V7/vi (Dominante del vi menor) - E7</h6>
+                <p>Resuelve a Am7. En Do Mayor, el vi es Am7. El dominante de Am es E7 (el V7 de La menor). La progresión común es E7 &rarr; Am7.</p>
+                 <p class="fingering">Digitación sugerida para E7 (fundamental en MI, 3-5-&flat;7 en MD): MI: 5 (Mi), MD: 1 (Sol#), 2 (Si), 3 (Re)</p>
+                 <img src="images/E-dominant-seventh.png" alt="Acorde E Dominante Séptima en teclado de piano" class="chord-image">
+
+            </div>
+
+            <div class="chord-info">
+                <h4>Acordes Sustitutos (Sustitución de Tritono)</h4>
+                <p>La sustitución de tritono es una técnica común donde un acorde dominante (V7) se reemplaza por otro acorde dominante cuya tónica está a un tritono de distancia. Por ejemplo, G7 puede ser sustituido por Db7.</p>
+                <p>La razón por la que esto funciona es que ambos acordes (G7 y Db7) comparten las mismas "notas guía" (guide tones): la 3ª y la 7ª, aunque invertidas. En G7, las notas guía son Si (3ª) y Fa (&flat;7). En Db7, las notas guía son Fa (3ª) y Cb (Si natural, &flat;7). Estas notas son las que crean la tensión que resuelve.</p>
+
+                <h5>Ejemplo: G7 sustituido por Db7 (en la progresión ii-V-I en Do Mayor)</h5>
+                <p>Progresión original: Dm7 &rarr; G7 &rarr; Cmaj7</p>
+                <p>Progresión con sustituto: Dm7 &rarr; Db7 &rarr; Cmaj7</p>
+
+                <h6>Acorde G7 (Dominante original)</h6>
+                 <p class="fingering">Notas: Sol - Si - Re - Fa</p>
+                 <img src="images/G-dominant-seventh.png" alt="Acorde G Dominante Séptima en teclado de piano" class="chord-image">
+
+                <h6>Acorde Db7 (Sustituto de tritono)</h6>
+                 <p class="fingering">Notas: Re&flat; - Fa - La&flat; - Si doble bemol (o La natural)</p>
+                 <img src="images/Db-dominant-seventh.png" alt="Acorde Db Dominante Séptima en teclado de piano" class="chord-image">
+
+                <p>Observa cómo las notas Si y Fa (notas guía de G7) son las mismas que Fa y Si natural (Cb enharmónico, notas guía de Db7). Esto crea una sonoridad similar pero con un movimiento de bajo cromático interesante (Re &rarr; Re&flat; &rarr; Do).</p>
+            </div>
+
+
+        </section>
+
+        <section id="voiceleading" class="content-section content-section-bg">
+            <h3>Voice Leading (Conducción de Voces)</h3>
+            <p>La conducción de voces se refiere a cómo se mueven las notas individuales de un acorde a otro. En jazz, un buen voice leading es esencial para crear progresiones suaves y melódicas, incluso con acordes complejos.</p>
+
+            <h4>Principios Clave del Voice Leading:</h4>
+            <ul>
+                <li><strong>Mantener notas comunes:</strong> Si dos acordes consecutivos comparten una o más notas, intenta mantener esas notas en el mismo lugar en el piano. Esto crea continuidad.</li>
+                <li><strong>Movimiento por grados conjuntos o pequeños saltos:</strong> Las voces que no son comunes deben moverse a la nota más cercana del siguiente acorde, preferiblemente por un semitono o tono completo. Evita grandes saltos innecesarios en las voces superiores.</li>
+                <li><strong>Movimiento contrario:</strong> Cuando sea posible, mueve algunas voces hacia arriba mientras otras se mueven hacia abajo. Esto crea un equilibrio y un sonido más interesante.</li>
+                <li><strong>Resolución de las notas guía:</strong> Las notas guía (la 3ª y la 7ª de los acordes dominantes) tienen una fuerte tendencia a resolver. La 7ª menor de un V7 generalmente resuelve bajando un semitono a la 3ª del acorde I (o i). La 3ª mayor de un V7 generalmente resuelve subiendo un semitono a la tónica del acorde I (o bajando un tono a la 5ª del acorde i).</li>
+            </ul>
+
+            <h4>Ejemplo de Voice Leading en una Progresión ii-V-I (Dm7 - G7 - Cmaj7) - Explicación Gráfica:</h4>
+            <p>Aquí visualizamos cómo se mueven las notas individuales en una progresión ii-V-I común (Dm7 a G7 a Cmaj7) para lograr una conducción de voces suave.</p>
+
+            <h5>Paso 1: De Dm7 a G7</h5>
+            <p>Observa cómo las notas de Dm7 se mueven a las notas de G7 con el mínimo movimiento posible en las voces superiores. Imagina estos acordes en un pentagrama para piano (clave de Fa para la mano izquierda, clave de Sol para la mano derecha).</p>
+
+            <p><strong>Acorde Dm7 (ii) - Posición inicial (ejemplo de voicing):</strong></p>
+            <p>Mano Izquierda (Bajo): Re</p>
+            <p>Mano Derecha: Fa, La, Do</p>
+            <div class="voice-leading-step">
+                <img src="images/D-minor-seventh.png" width="700" height="400" alt="Acorde D Menor Séptima en teclado de piano">
+            </div>
+
+            <p><strong>Movimiento hacia G7 (V):</strong></p>
+            <ul>
+                <li>La nota **Fa** (3ª de Dm7) se **mantiene** como **Fa** (&flat;7 de G7). (Nota común)</li>
+                <li>La nota **La** (5ª de Dm7) **baja** un tono a **Sol** (tónica de G7). (Grado conjunto)</li>
+                <li>La nota **Do** (&flat;7 de Dm7) **baja** un semitono a **Si** (3ª de G7). (Resolución de la 7ª)</li>
+                <li>El bajo **Re** (tónica de Dm7) **sube** una cuarta justa a **Sol** (tónica de G7). (Movimiento de bajo fuerte)</li>
+            </ul>
+
+            <p><strong>Acorde G7 (V) - Después del movimiento:</strong></p>
+            <p>Mano Izquierda (Bajo): Sol</p>
+            <p>Mano Derecha: Fa, Sol, Si</p>
+            <div class="voice-leading-step">
+                <img src="images/G-dominant-seventh.png" width="600" height="400" alt="Acorde G Dominante Séptima en teclado de piano">
+            </div>
+
+
+            <h5>Paso 2: De G7 a Cmaj7</h5>
+            <p>Ahora, veamos cómo las notas de G7 se mueven a las notas de Cmaj7, prestando especial atención a la resolución de las notas guía de G7 (Si y Fa).</p>
+
+            <p><strong>Acorde G7 (V) - Posición inicial (la misma que al final del Paso 1):</strong></p>
+            <p>Mano Izquierda (Bajo): Sol</p>
+            <p>Mano Derecha: Fa, Sol, Si</p>
+             <div class="voice-leading-step">
+                <img src="images/G-dominant-seventh.png" alt="Acorde G Dominante Séptima en teclado de piano">
+            </div>
+
+            <p><strong>Movimiento hacia Cmaj7 (I):</strong></p>
+            <ul>
+                <li>La nota **Fa** (&flat;7 de G7) **baja** un semitono a **Mi** (3ª de Cmaj7). (Resolución de la &flat;7)</li>
+                <li>La nota **Sol** (tónica de G7) se **mantiene** como **Sol** (5ª de Cmaj7). (Nota común)</li>
+                <li>La nota **Si** (3ª de G7) **sube** un semitono a **Do** (tónica de Cmaj7). (Resolución de la 3ª)</li>
+                <li>El bajo **Sol** (tónica de G7) **sube** una cuarta justa a **Do** (tónica de Cmaj7). (Movimiento de bajo V-I clásico)</li>
+            </ul>
+
+            <p><strong>Acorde Cmaj7 (I) - Después del movimiento:</strong></p>
+            <p>Mano Izquierda (Bajo): Do</p>
+            <p>Mano Derecha: Mi, Sol, Si</p>
+            <div class="voice-leading-step">
+                <img src="images/C-major-seventh.png" alt="Acorde C Mayor Séptima en teclado de piano">
+            </div>
+
+
+            <p>Al visualizar estos movimientos en un pentagrama, verías líneas melódicas suaves en cada voz (particularmente en la mano derecha), con notas moviéndose principalmente por grados conjuntos o manteniéndose en su lugar. Las resoluciones de las notas guía (Si a Do y Fa a Mi) son especialmente importantes y visualmente claras en el pentagrama.</p>
+
+            <p><strong>Sugerencia para visualizar en pentagrama con colores:</strong></p>
+            <p>Para ver esto con colores en un pentagrama, te recomiendo usar software de notación musical (como MuseScore, Finale, Sibelius) o herramientas en línea que te permitan introducir los acordes y ver la notación. Puedes asignar colores a las notas para rastrear fácilmente cómo se mueve cada voz de un acorde al siguiente.</p>
+
+            <h4>Representación en un pentagrama para piano (Diagrama Textual)</h4>
+            <p>Aquí tienes una representación simplificada en texto de cómo se verían los voicings en un pentagrama, mostrando las notas aproximadas en cada mano. La mano izquierda está en clave de Fa (abajo) y la mano derecha en clave de Sol (arriba).</p>
+
+            <pre><strong>
+**Progresión ii-V-I en Do Mayor (Dm7 - G7 - Cmaj7)**
+
+**Dm7 (ii)**
+Mano Derecha (aprox): --E--- (arriba)
+                      --C-----
+                      --A------
+                      --F------
+
+Mano Izquierda (aprox):  D-----------  (abajo)
+                       
+
+**G7 (V)**
+Mano Derecha (aprox): ---D---  (arriba)
+                      ---Si---
+                       --La-----
+                       --Fa-----
+
+Mano Izquierda (aprox): -------Sol--  (abajo)
+                       
+
+**Cmaj7 (I)**
+Mano Derecha (aprox): ---Mi--  (arriba)
+                      ---Do---
+                      --Si------
+                      --La-----
+                      --Sol------
+
+Mano Izquierda (aprox): Do----------  (abajo)
+ </strong>                      
+</pre>
+            <p>En la representación textual de arriba:</p>
+            <ul>
+                <li>Cada línea horizontal representa aproximadamente una línea o espacio en el pentagrama.</li>
+                <li>Las notas están colocadas en sus posiciones relativas.</li>
+                <li>Observa cómo las notas en la mano derecha se mueven a posiciones cercanas en el siguiente acorde.</li>
+            </ul>
+            <p>Esta representación textual es una aproximación. Para una visualización precisa, se recomienda usar software de notación musical.</p>
+
+        </section>
+
+         <section id="construccion" class="content-section content-section-bg">
+            <h3>Construcción de Acordes</h3>
+            <p>Comprende los intervalos y extensiones para construir cualquier acorde de jazz.</p>
+            </section>
+
+         <section id="escalas" class="content-section content-section-bg">
+            <h3>Escalas de Jazz</h3>
+            <p>Descubre las escalas esenciales para improvisar y crear melodías en el jazz.</p>
+            </section>
+
+         <section id="arpegios" class="content-section content-section-bg">
+            <h3>Arpegios</h3>
+            <p>Practica los arpegios derivados de los acordes de jazz.</p>
+            </section>
+
+         <section id="modos" class="content-section content-section-bg">
+            <h3>Modos</h3>
+            <p>Sumérgete en los modos de la escala mayor y otros modos importantes en el jazz.</p>
+            </section>
+
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Academia de Piano Jazz. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        // Inicializar Tone.js
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+
+        // Referencias a elementos del DOM
+        const pianoContainer = document.getElementById('virtual-piano');
+        const musicTypeSelect = document.getElementById('music-type');
+        const rootNoteSelect = document.getElementById('root-note');
+        const variationTypeSelect = document.getElementById('variation-type');
+        const playButton = document.getElementById('play-button');
+
+        // Mapeo de notas MIDI a nombres de notas y viceversa (para una octava)
+        const midiNoteMap = {
+            60: 'C4', 61: 'C#4', 62: 'D4', 63: 'D#4', 64: 'E4', 65: 'F4',
+            66: 'F#4', 67: 'G4', 68: 'G#4', 69: 'A4', 70: 'A#4', 71: 'B4',
+            72: 'C5', 73: 'C#5', 74: 'D5', 75: 'D#5', 76: 'E5', 77: 'F5',
+            78: 'F#5', 79: 'G5', 80: 'G#5', 81: 'A5', 82: 'A#5', 83: 'B5'
+            // Puedes extender esto a más octavas
+        };
+
+        const noteMidiMap = Object.fromEntries(Object.entries(midiNoteMap).map(([midi, note]) => [note, parseInt(midi)]));
+
+        // Definiciones de acordes, escalas y arpegios (intervalos en semitonos)
+        const musicDefinitions = {
+            chord: {
+                'Major 7': [0, 4, 7, 11],
+                'Minor 7': [0, 3, 7, 10],
+                'Dominant 7': [0, 4, 7, 10],
+                'Minor 7b5': [0, 3, 6, 10],
+                'Diminished 7': [0, 3, 6, 9],
+                // Agrega más acordes de jazz aquí
+            },
+            scale: {
+                'Major': [0, 2, 4, 5, 7, 9, 11, 12],
+                'Dorian': [0, 2, 3, 5, 7, 9, 10, 12],
+                'Mixolydian': [0, 2, 4, 5, 7, 9, 10, 12],
+                'Minor Harmonic': [0, 2, 3, 5, 7, 8, 11, 12],
+                // Agrega más escalas de jazz aquí
+            },
+            arpeggio: {
+                 'Major 7': [0, 4, 7, 11, 12, 16, 19, 23], // Arpegio de dos octavas
+                 'Minor 7': [0, 3, 7, 10, 12, 15, 19, 22],
+                 'Dominant 7': [0, 4, 7, 10, 12, 16, 19, 22],
+                 // Agrega más arpegios aquí (pueden basarse en los intervalos de los acordes)
+            }
+        };
+
+        // Mapeo de nombres de notas raíz a sus números MIDI base (para la octava 4)
+        const rootNoteMidiBase = {
+            'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65,
+            'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71
+        };
+
+        let currentHighlightedKeys = []; // Para mantener un registro de las teclas resaltadas
+
+        // Función para generar el piano virtual en el DOM
+        function generatePiano() {
+            pianoContainer.innerHTML = ''; // Limpiar el contenedor
+
+            const whiteKeyWidth = 50; // Ancho de tecla blanca en px
+            const blackKeyWidth = 30; // Ancho de tecla negra en px
+            const blackKeyHeight = 100; // Altura de tecla negra en px
+
+            let whiteKeyCount = 0;
+            const whiteKeyPositions = {}; // Almacenar la posición x de cada tecla blanca
+
+            // Definir el rango de notas MIDI a mostrar en el piano
+            const startMidi = 60; // C4
+            const endMidi = 83; // B5
+
+            // Primero, generar las teclas blancas para determinar sus posiciones
+            for (let midi = startMidi; midi <= endMidi; midi++) {
+                const noteName = midiNoteMap[midi];
+                if (!noteName) continue;
+
+                const noteBase = noteName.slice(0, -1);
+                const isBlackKey = noteBase.includes('#');
+
+                if (!isBlackKey) {
+                    const key = document.createElement('div');
+                    key.classList.add('key', 'white');
+                    key.dataset.note = noteName;
+                    key.dataset.midi = midi;
+
+                    const leftPosition = whiteKeyCount * whiteKeyWidth;
+                    key.style.left = `${leftPosition}px`;
+                    whiteKeyPositions[midi] = leftPosition; // Guardar la posición de la tecla blanca
+
+                    // Añadir etiqueta de nota
+                    const label = document.createElement('div');
+                    label.classList.add('key-label');
+                    label.textContent = noteBase;
+                    key.appendChild(label);
+
+                     // Añadir evento de clic para tocar la nota
+                    key.addEventListener('click', () => {
+                        const noteToPlay = key.dataset.note;
+                        synth.triggerAttackRelease(noteToPlay, '8n');
+                        highlightKeys([parseInt(key.dataset.midi)]);
+                        setTimeout(() => highlightKeys([]), 200);
+                    });
+
+                    pianoContainer.appendChild(key);
+                    whiteKeyCount++;
+                }
+            }
+
+            // Luego, generar las teclas negras basándose en las posiciones de las blancas
+            // Recorremos las notas MIDI que corresponden a teclas negras
+            const blackKeyMidis = Object.keys(midiNoteMap).map(Number).filter(midi => {
+                const noteName = midiNoteMap[midi];
+                return noteName && noteName.includes('#') && midi >= startMidi && midi <= endMidi;
+            }).sort((a, b) => a - b); // Ordenar por MIDI para procesar en orden
+
+            blackKeyMidis.forEach(midi => {
+                 const noteName = midiNoteMap[midi];
+                 const noteBase = noteName.slice(0, -1);
+
+                 const key = document.createElement('div');
+                 key.classList.add('key', 'black');
+                 key.dataset.note = noteName;
+                 key.dataset.midi = midi;
+                 key.style.height = `${blackKeyHeight}px`; // Establecer altura
+
+                 // Determinar la tecla blanca anterior para el posicionamiento
+                 let prevWhiteKeyMidi = midi - 1;
+                 while(midiNoteMap[prevWhiteKeyMidi] && midiNoteMap[prevWhiteKeyMidi].includes('#')) {
+                     prevWhiteKeyMidi--;
+                 }
+
+                 const posPrevWhite = whiteKeyPositions[prevWhiteKeyMidi];
+
+                 if (posPrevWhite !== undefined) {
+                     // Calcular el offset desde el inicio de la tecla blanca anterior
+                     let offset = 0;
+                     const noteOfPrevWhite = midiNoteMap[prevWhiteKeyMidi].slice(0, -1); // Nota base de la tecla blanca anterior
+
+                     // Offsets ajustados para centrar las teclas negras sobre los huecos correctos
+                     // Estos valores son aproximados y pueden requerir ajustes finos visuales
+                     if (noteOfPrevWhite === 'C') offset = whiteKeyWidth * 0.65; // C# después de C
+                     else if (noteOfPrevWhite === 'D') offset = whiteKeyWidth * 0.85; // D# después de D
+                     else if (noteOfPrevWhite === 'F') offset = whiteKeyWidth * 0.6; // F# después de F
+                     else if (noteOfPrevWhite === 'G') offset = whiteKeyWidth * 0.8; // G# después de G
+                     else if (noteOfPrevWhite === 'A') offset = whiteKeyWidth * 1; // A# después de A (aproximadamente sobre el final de A)
+
+                     key.style.left = `${posPrevWhite + offset - (blackKeyWidth / 2)}px`; // Centrar la tecla negra
+
+                 } else {
+                      // Manejar casos donde no se encuentra la tecla blanca anterior (inicio del rango)
+                      console.warn(`No se pudo encontrar la tecla blanca anterior para la tecla negra MIDI ${midi}`);
+                      // Posicionamiento de fallback (podría no ser preciso)
+                      const whiteKeysBefore = Object.keys(whiteKeyPositions).filter(posMidi => posMidi < midi).length;
+                      key.style.left = `${whiteKeysBefore * whiteKeyWidth + (whiteKeyWidth / 2) - (blackKeyWidth / 2)}px`;
+                 }
+
+
+                  // Añadir etiqueta de nota
+                  const label = document.createElement('div');
+                  label.classList.add('key-label');
+                  label.textContent = noteBase; // Mostrar solo el nombre de la nota (C#, D#, etc.)
+                  key.appendChild(label);
+
+
+                 // Añadir evento de clic para tocar la nota
+                 key.addEventListener('click', () => {
+                     const noteToPlay = key.dataset.note;
+                     synth.triggerAttackRelease(noteToPlay, '8n');
+                     highlightKeys([parseInt(key.dataset.midi)]);
+                     setTimeout(() => highlightKeys([]), 200);
+                 });
+
+                 pianoContainer.appendChild(key);
+            });
+
+
+             // Ajustar el ancho del contenedor del piano para que quepan todas las teclas blancas
+            pianoContainer.style.width = `${whiteKeyCount * whiteKeyWidth}px`;
+        }
+
+
+        // Función para resaltar teclas en el piano virtual
+        function highlightKeys(midiNotesToHighlight) {
+            // Limpiar resaltados anteriores
+            currentHighlightedKeys.forEach(midi => {
+                const keyElement = pianoContainer.querySelector(`.key[data-midi="${midi}"]`);
+                if (keyElement) {
+                    keyElement.classList.remove('highlighted');
+                }
+            });
+            currentHighlightedKeys = [];
+
+            // Resaltar nuevas teclas
+            midiNotesToHighlight.forEach(midi => {
+                const keyElement = pianoContainer.querySelector(`.key[data-midi="${midi}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('highlighted');
+                    currentHighlightedKeys.push(midi);
+                }
+            });
+        }
+
+        // Función para obtener las notas (MIDI) de un acorde, escala o arpegio
+        function getMusicNotes(type, rootNoteName, variationType) {
+            const rootMidi = rootNoteMidiBase[rootNoteName];
+            if (rootMidi === undefined || !musicDefinitions[type] || !musicDefinitions[type][variationType]) {
+                console.error("Combinación de música no encontrada:", type, rootNoteName, variationType);
+                return [];
+            }
+
+            const intervals = musicDefinitions[type][variationType];
+            const midiNotes = intervals.map(interval => rootMidi + interval);
+
+            // Filtrar notas que están fuera del rango del piano virtual mostrado
+            const startMidi = 60; // C4
+            const endMidi = 83; // B5
+            return midiNotes.filter(midi => midi >= startMidi && midi <= endMidi);
+        }
+
+        // Función para tocar un acorde, escala o arpegio
+        async function playMusic() {
+            const type = musicTypeSelect.value;
+            const rootNoteName = rootNoteSelect.value;
+            const variationType = variationTypeSelect.value;
+
+            const midiNotes = getMusicNotes(type, rootNoteName, variationType);
+            const notesToPlay = midiNotes.map(midi => midiNoteMap[midi]); // Convertir MIDI a nombre de nota con octava
+
+            if (notesToPlay.length === 0) return;
+
+            // Limpiar resaltados anteriores antes de tocar
+            highlightKeys([]);
+
+            if (type === 'chord') {
+                // Tocar acorde simultáneamente
+                highlightKeys(midiNotes);
+                synth.triggerAttackRelease(notesToPlay, '1n'); // Duración de una nota entera
+                 // Quitar el resaltado después de la duración del acorde
+                setTimeout(() => highlightKeys([]), 1000); // Ajustar el tiempo según la duración
+            } else {
+                // Tocar escala o arpegio secuencialmente
+                const noteDuration = '8n'; // Duración de cada nota en la secuencia
+                for (let i = 0; i < notesToPlay.length; i++) {
+                    const note = notesToPlay[i];
+                    const midi = midiNotes[i];
+
+                    highlightKeys([midi]); // Resaltar la nota actual
+                    synth.triggerAttackRelease(note, noteDuration);
+
+                    // Esperar la duración de la nota antes de tocar la siguiente
+                    await Tone.Transport.start(); // Asegurarse de que el transporte esté corriendo
+                    await Tone.Transport.scheduleOnce(() => {}, `+${Tone.Time(noteDuration).toSeconds()}s`);
+                     Tone.Transport.stop(); // Detener el transporte después de la espera
+                }
+                 // Quitar el resaltado después de la última nota
+                highlightKeys([]);
+            }
+        }
+
+        // Función para llenar las opciones de los selectores
+        function populateSelectors() {
+            // Llenar selector de Tónica
+            for (const note in rootNoteMidiBase) {
+                const option = document.createElement('option');
+                option.value = note;
+                option.textContent = note;
+                rootNoteSelect.appendChild(option);
+            }
+
+            // Llenar selector de Tipo/Variación basado en el tipo de música seleccionado
+            function updateVariationTypes() {
+                const selectedMusicType = musicTypeSelect.value;
+                const variations = musicDefinitions[selectedMusicType];
+                variationTypeSelect.innerHTML = ''; // Limpiar opciones anteriores
+
+                if (variations) {
+                    for (const type in variations) {
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        variationTypeSelect.appendChild(option);
+                    }
+                }
+            }
+
+            // Actualizar tipos de variación al cambiar el tipo de música
+            musicTypeSelect.addEventListener('change', updateVariationTypes);
+
+            // Llamar inicialmente para llenar el selector de tipo/variación
+            updateVariationTypes();
+        }
+
+
+        // Event Listeners
+        playButton.addEventListener('click', playMusic);
+
+        // Inicializar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            generatePiano();
+            populateSelectors();
+        });
+
+    </script>
+</body>
+</html>
